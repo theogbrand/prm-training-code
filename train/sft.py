@@ -35,7 +35,7 @@ from trl import (
     get_peft_config,
     get_quantization_config,
 )
-
+from utils.qwen_vl_utils.vision_process import process_vision_info
 
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig))
@@ -72,22 +72,24 @@ if __name__ == "__main__":
     def collate_fn(examples):
         # Get the texts and images, and apply the chat template
         texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
-        images = [example["images"] for example in examples]
-        if isinstance(model, LlavaForConditionalGeneration):
-            # LLava1.5 does not support multiple images
-            images = [image[0] for image in images]
-
+        # TODO: process_vision_info only for Qwen2VLProcessor, to check for others
+        image_inputs = [process_vision_info(example["messages"])[0] for example in examples] # accept just single image for now though some datasets have multiple images so can change this later
+    
         # Tokenize the texts and process the images
-        batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
-
+        batch = processor(text=texts, images=image_inputs, return_tensors="pt", padding=True)
+    
         # The labels are the input_ids, and we mask the padding tokens in the loss computation
         labels = batch["input_ids"].clone()
         labels[labels == processor.tokenizer.pad_token_id] = -100  #
         # Ignore the image token index in the loss computation (model specific)
-        image_token_id = processor.tokenizer.convert_tokens_to_ids(processor.image_token)
-        labels[labels == image_token_id] = -100
+        if isinstance(processor, Qwen2VLProcessor):
+            image_tokens = [151652,151653,151655]
+        else: 
+            image_tokens = [processor.tokenizer.convert_tokens_to_ids(processor.image_token)]
+        for image_token_id in image_tokens:
+            labels[labels == image_token_id] = -100
         batch["labels"] = labels
-
+    
         return batch
 
     ################
