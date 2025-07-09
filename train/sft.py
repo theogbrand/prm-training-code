@@ -3,13 +3,13 @@ pip install pillow
 
 # Tested on 8x H100 GPUs
 accelerate launch
-    --config_file=examples/accelerate_configs/deepspeed_zero3.yaml \
-    examples/scripts/sft_vlm.py \
+    --config_file=train/deepspeed_zero3.yaml \
+    train/sft.py \
     --dataset_name HuggingFaceH4/llava-instruct-mix-vsft \
     --model_name_or_path llava-hf/llava-1.5-7b-hf \
     --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 8 \
-    --output_dir sft-llava-1.5-7b-hf \
+    --output_dir ckpts/sft-qwen-vl-7b-instruct-${uid} \
     --bf16 \
     --torch_dtype bfloat16 \
     --gradient_checkpointing
@@ -20,11 +20,15 @@ For LLaVA-NeXT, use: (requires transformers>=4.45)
 For meta-llama/Llama-3.2-11B-Vision-Instruct, use: (requires transformers>=4.45.1)
     --model_name_or_path meta-llama/Llama-3.2-11B-Vision-Instruct
 """
+from transformers import Qwen2VLProcessor
 
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForVision2Seq, AutoProcessor, LlavaForConditionalGeneration
-
+import warnings
+import logging
+warnings.filterwarnings("ignore", category=FutureWarning)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 from trl import (
     ModelConfig,
     ScriptArguments,
@@ -35,22 +39,45 @@ from trl import (
     get_peft_config,
     get_quantization_config,
 )
-from utils.qwen_vl_utils.vision_process import process_vision_info
+from qwen_vl_utils import process_vision_info
+
+import os
+from dataclasses import dataclass, field, asdict
+from typing import Optional
+
+# @dataclass
+# class TrainingConfig:
+#     model_name: str = field(default="Qwen/Qwen2.5-VL-7B-Instruct")
+#     block_size: int = field(default=32768)
+#     wandb_project: Optional[str] = field(default="")
+#     wandb_entity: Optional[str] = field(default="")
+#     train_file_path: Optional[str] = field(default="")
+#     dagger: bool = field(default=False)
+
+#     def __post_init__(self):
+#         os.environ['WANDB_PROJECT'] = self.wandb_project
+#         os.environ['WANDB_ENTITY'] = self.wandb_entity
 
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
+    
+    # for Multi-gpu DDP training with SFT Trainer
     training_args.gradient_checkpointing_kwargs = dict(use_reentrant=False)
+    # for multimodal inputs
     training_args.remove_unused_columns = False
     training_args.dataset_kwargs = {"skip_prepare_dataset": True}
 
+    log_config = {**asdict(script_args), **asdict(training_args), **asdict(model_args)}
+    logging.info(f"Training config: {log_config}")
+    
     ################
     # Model, Tokenizer & Processor
     ################
     torch_dtype = (
         model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
     )
-    quantization_config = get_quantization_config(model_args)
+    quantization_config = None # full parameter SFT for now
     model_kwargs = dict(
         revision=model_args.model_revision,
         attn_implementation=model_args.attn_implementation,
@@ -60,7 +87,7 @@ if __name__ == "__main__":
     )
     processor = AutoProcessor.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code
-    )
+    ) # required for processing Multimodal inputs, has tokenizer built in
 
     model = AutoModelForVision2Seq.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs
@@ -73,6 +100,7 @@ if __name__ == "__main__":
         # Get the texts and images, and apply the chat template
         texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
         # TODO: process_vision_info only for Qwen2VLProcessor, to check for others
+        # Image inputs should be in PIL image type, which is what process_vision_info returns
         image_inputs = [process_vision_info(example["messages"])[0] for example in examples] # accept just single image for now though some datasets have multiple images so can change this later
     
         # Tokenize the texts and process the images
