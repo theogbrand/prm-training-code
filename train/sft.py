@@ -1,18 +1,34 @@
+# Copyright 2020-2025 The HuggingFace Team. All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """
 pip install pillow
 
 # Tested on 8x H100 GPUs
 accelerate launch
-    --config_file=train/deepspeed_zero3.yaml \
-    train/sft.py \
+    --config_file=examples/accelerate_configs/deepspeed_zero3.yaml \
+    examples/scripts/sft_vlm.py \
     --dataset_name HuggingFaceH4/llava-instruct-mix-vsft \
     --model_name_or_path llava-hf/llava-1.5-7b-hf \
     --per_device_train_batch_size 8 \
     --gradient_accumulation_steps 8 \
-    --output_dir ckpts/sft-qwen-vl-7b-instruct-${uid} \
+    --output_dir sft-llava-1.5-7b-hf \
     --bf16 \
     --torch_dtype bfloat16 \
     --gradient_checkpointing
+
+accelerate launch --config_file=train/deepspeed_zero3.yaml train/sft.py --dataset_name HuggingFaceH4/llava-instruct-mix-vsft --model_name_or_path llava-hf/llava-1.5-7b-hf --per_device_train_batch_size 8 --gradient_accumulation_steps 8 --output_dir sft-llava-1.5-7b-hf --bf16 True --torch_dtype bfloat16 --gradient_checkpointing
 
 For LLaVA-NeXT, use: (requires transformers>=4.45)
     --model_name_or_path llava-hf/llava-v1.6-mistral-7b-hf
@@ -20,15 +36,11 @@ For LLaVA-NeXT, use: (requires transformers>=4.45)
 For meta-llama/Llama-3.2-11B-Vision-Instruct, use: (requires transformers>=4.45.1)
     --model_name_or_path meta-llama/Llama-3.2-11B-Vision-Instruct
 """
-from transformers import Qwen2VLProcessor
 
 import torch
 from datasets import load_dataset
 from transformers import AutoModelForVision2Seq, AutoProcessor, LlavaForConditionalGeneration
-import warnings
-import logging
-warnings.filterwarnings("ignore", category=FutureWarning)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 from trl import (
     ModelConfig,
     ScriptArguments,
@@ -39,45 +51,22 @@ from trl import (
     get_peft_config,
     get_quantization_config,
 )
-from qwen_vl_utils import process_vision_info
 
-import os
-from dataclasses import dataclass, field, asdict
-from typing import Optional
-
-# @dataclass
-# class TrainingConfig:
-#     model_name: str = field(default="Qwen/Qwen2.5-VL-7B-Instruct")
-#     block_size: int = field(default=32768)
-#     wandb_project: Optional[str] = field(default="")
-#     wandb_entity: Optional[str] = field(default="")
-#     train_file_path: Optional[str] = field(default="")
-#     dagger: bool = field(default=False)
-
-#     def __post_init__(self):
-#         os.environ['WANDB_PROJECT'] = self.wandb_project
-#         os.environ['WANDB_ENTITY'] = self.wandb_entity
 
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_args_and_config()
-    
-    # for Multi-gpu DDP training with SFT Trainer
     training_args.gradient_checkpointing_kwargs = dict(use_reentrant=False)
-    # for multimodal inputs
     training_args.remove_unused_columns = False
     training_args.dataset_kwargs = {"skip_prepare_dataset": True}
 
-    log_config = {**asdict(script_args), **asdict(training_args), **asdict(model_args)}
-    logging.info(f"Training config: {log_config}")
-    
     ################
     # Model, Tokenizer & Processor
     ################
     torch_dtype = (
         model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
     )
-    quantization_config = None # full parameter SFT for now
+    quantization_config = get_quantization_config(model_args)
     model_kwargs = dict(
         revision=model_args.model_revision,
         attn_implementation=model_args.attn_implementation,
@@ -87,7 +76,7 @@ if __name__ == "__main__":
     )
     processor = AutoProcessor.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code
-    ) # required for processing Multimodal inputs, has tokenizer built in
+    )
 
     model = AutoModelForVision2Seq.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs
@@ -99,25 +88,22 @@ if __name__ == "__main__":
     def collate_fn(examples):
         # Get the texts and images, and apply the chat template
         texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
-        # TODO: process_vision_info only for Qwen2VLProcessor, to check for others
-        # Image inputs should be in PIL image type, which is what process_vision_info returns
-        image_inputs = [process_vision_info(example["messages"])[0] for example in examples] # accept just single image for now though some datasets have multiple images so can change this later
-    
+        images = [example["images"] for example in examples]
+        if isinstance(model, LlavaForConditionalGeneration):
+            # LLava1.5 does not support multiple images
+            images = [image[0] for image in images]
+
         # Tokenize the texts and process the images
-        batch = processor(text=texts, images=image_inputs, return_tensors="pt", padding=True)
-    
+        batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
+
         # The labels are the input_ids, and we mask the padding tokens in the loss computation
         labels = batch["input_ids"].clone()
         labels[labels == processor.tokenizer.pad_token_id] = -100  #
         # Ignore the image token index in the loss computation (model specific)
-        if isinstance(processor, Qwen2VLProcessor):
-            image_tokens = [151652,151653,151655]
-        else: 
-            image_tokens = [processor.tokenizer.convert_tokens_to_ids(processor.image_token)]
-        for image_token_id in image_tokens:
-            labels[labels == image_token_id] = -100
+        image_token_id = processor.tokenizer.convert_tokens_to_ids(processor.image_token)
+        labels[labels == image_token_id] = -100
         batch["labels"] = labels
-    
+
         return batch
 
     ################
