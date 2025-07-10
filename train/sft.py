@@ -38,6 +38,8 @@ For meta-llama/Llama-3.2-11B-Vision-Instruct, use: (requires transformers>=4.45.
 """
 
 import torch
+import os
+from datetime import datetime
 from datasets import load_dataset
 from transformers import AutoModelForVision2Seq, AutoProcessor, LlavaForConditionalGeneration
 
@@ -51,6 +53,11 @@ from trl import (
     get_peft_config,
     get_quantization_config,
 )
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 if __name__ == "__main__":
@@ -59,6 +66,33 @@ if __name__ == "__main__":
     training_args.gradient_checkpointing_kwargs = dict(use_reentrant=False)
     training_args.remove_unused_columns = False
     training_args.dataset_kwargs = {"skip_prepare_dataset": True}
+    
+    # Set logging directory to output_dir with datetime suffix
+    if training_args.output_dir:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        training_args.logging_dir = os.path.join(training_args.output_dir, "run_logs", f"run-{timestamp}")
+        # Create the logging directory if it doesn't exist
+        os.makedirs(training_args.logging_dir, exist_ok=True)
+        logging.info(f"Logging directory set to: {training_args.logging_dir}")
+    
+    # Enable Weights & Biases reporting while keeping physical text logs
+    training_args.report_to = ["wandb"]
+    logging.info("Enabled Weights & Biases reporting")
+    
+    # Set up file logging to the logging directory for physical text logs
+    if training_args.logging_dir:
+        log_file = os.path.join(training_args.logging_dir, "training.log")
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.INFO)
+        file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(file_formatter)
+        logging.getLogger().addHandler(file_handler)
+        logging.info(f"Physical log file created at: {log_file}")
+
+    logging.info("\n\nscript_args: %s", script_args)
+    logging.info("\ntraining_args: %s", training_args)
+    logging.info("\nmodel_args: %s", model_args)
+    logging.info("\n\n")
 
     ################
     # Model, Tokenizer & Processor
@@ -66,7 +100,7 @@ if __name__ == "__main__":
     torch_dtype = (
         model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
     )
-    quantization_config = get_quantization_config(model_args)
+    quantization_config = None # full parameter
     model_kwargs = dict(
         revision=model_args.model_revision,
         attn_implementation=model_args.attn_implementation,
@@ -81,6 +115,10 @@ if __name__ == "__main__":
     model = AutoModelForVision2Seq.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs
     )
+
+    logging.info("\n\nmodel_kwargs: %s", model_kwargs)
+    logging.info("\nprocessor: %s", processor)
+    logging.info("\nmodel: %s", model)
 
     ################
     # Create a data collator to encode text and image pairs

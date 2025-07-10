@@ -1,2 +1,4 @@
 sft-llava-1.5-7b-hf/runs/Jul09_21-52-02_152-67-111-71/*
 sft-meta-llama-3.2-11b-vision-instruct/runs/*
+sft-meta-llama-3.2-11b-vision-instruct/run_logs/*
+wandb/*
