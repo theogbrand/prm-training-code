@@ -4,3 +4,6 @@ sft-meta-llama-3.2-11b-vision-instruct/run_logs/*
 wandb/*
 sft-meta-llama-3.2-11b-vision-instruct/*
 training_data_images/*
+sft-meta-llama-3.2-11b-vision-instruct-20250712_050440/*
+sft-meta-llama-3.2-11b-vision-instruct-20250712_050546/*
+training_outputs/*

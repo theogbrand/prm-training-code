@@ -3,3 +3,5 @@ transformers==4.53.1
 torch==2.7.1
 datasets==3.0.1
 tokenizers==0.21.2
+deepspeed
+pillow
