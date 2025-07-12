@@ -77,7 +77,9 @@ if __name__ == "__main__":
     
     # Enable Weights & Biases reporting while keeping physical text logs
     training_args.report_to = ["wandb"]
-    logging.info("Enabled Weights & Biases reporting")
+    os.environ["WANDB_PROJECT"] = "multimodal-reasoning"
+    os.environ["WANDB_ENTITY"] = "aisg-arf"
+    logging.info("Enabled Weights & Biases reporting with project: multimodal-reasoning")
     
     # Set up file logging to the logging directory for physical text logs
     if training_args.logging_dir:
