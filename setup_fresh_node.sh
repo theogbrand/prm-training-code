@@ -11,7 +11,7 @@ echo "=================================="
 # Configuration variables - Edit these as needed
 STORAGE_BASE_URL="/home/ubuntu/porialab-us-south-2"
 GIT_USERNAME="ob1-brandon"
-GIT_EMAIL="ob1-brandon@aisg.org"
+GIT_EMAIL="ob1-brandon@lambda-sj.org"
 
 # Colors for output
 RED='\033[0;31m'
