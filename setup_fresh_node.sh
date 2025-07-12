@@ -117,12 +117,6 @@ cat >> ~/.bashrc << 'EOL'
 alias sov='source .venv/bin/activate'
 alias gfp='git add . && git commit -m "gfp" && git push'
 
-# Add uv to PATH
-export PATH="$HOME/.local/bin:$PATH"
-
-# Activate virtual environment by default (optional)
-# source .venv/bin/activate
-
 EOL
 
 # Add the cob1 alias with the user-provided path
