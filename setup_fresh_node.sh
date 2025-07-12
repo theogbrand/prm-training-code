@@ -115,7 +115,7 @@ cat >> ~/.bashrc << 'EOL'
 
 # Custom shortcuts for GPU node setup
 alias sov='source .venv/bin/activate'
-alias gfp='git add . && git commit -m "gfp" && git push'
+alias gfm='git add . && git commit -m "gfm"'
 
 EOL
 
