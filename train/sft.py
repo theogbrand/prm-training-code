@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from PIL import Image
 import torch
-from datasets import Dataset
+from datasets import Dataset, DatasetDict, load_dataset
 import json
 from transformers import AutoModelForVision2Seq, AutoProcessor, LlavaForConditionalGeneration
 
@@ -158,28 +158,34 @@ if __name__ == "__main__":
     ################
     # Dataset
     ################
-    # dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
 
     # load dataset from JSONL file
    # Load your JSONL file
-    file_path = "/mnt/fast10/brandon/mmr_rollout_data/prm_training_data/train/AI2D_final_mc_rollouts_with_all_models_verification_merged_prm_training_data_final_trl_format_mc0.0.jsonl"
+    # file_path = "/mnt/fast10/brandon/mmr_rollout_data/prm_training_data/train/AI2D_final_mc_rollouts_with_all_models_verification_merged_prm_training_data_final_trl_format_mc0.0.jsonl"
 
-    # Load data into a list
-    data = []
-    with open(file_path, 'r') as f:
-        for line in f:
-            data.append(json.loads(line.strip()))
+    # # Load data into a list
+    # data = []
+    # with open(file_path, 'r') as f:
+    #     for line in f:
+    #         data.append(json.loads(line.strip()))
 
-    print(f"Loaded {len(data)} samples") 
-    print(data[345]["messages"])
+    # print(f"Loaded {len(data)} samples") 
+    # print(data[345]["messages"])
 
-    # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
-    processed_data = [process_example_local(sample) for sample in data] 
-    trainining_dataset = Dataset.from_list(processed_data)  # type: ignore
-
-    assert isinstance(trainining_dataset[345]["images"][0], Image), "Image is not a PIL.Image.Image"
-
+    # # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
+    # processed_data = [process_example_local(sample) for sample in data] 
+    
     # convert to HF Dataset for training
+    # trainining_dataset = Dataset.from_list(processed_data)  # type: ignore
+
+    # assert isinstance(trainining_dataset[345]["images"][0], Image), "Image is not a PIL.Image.Image"
+
+    # # Create dataset dict (optional, for train/validation split)
+    # dataset_dict = DatasetDict({
+    #     "train": training_dataset
+    # })
+
 
     ################
     # Training
@@ -188,7 +194,7 @@ if __name__ == "__main__":
         model=model,
         args=training_args,
         data_collator=collate_fn,
-        train_dataset=trainining_dataset, # train on full dataset for now
+        train_dataset=training_dataset[script_args.dataset_train_split], # train on full dataset for now
         eval_dataset=None,
         # eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
         processing_class=processor.tokenizer,
