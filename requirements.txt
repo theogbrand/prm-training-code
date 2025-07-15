@@ -5,3 +5,5 @@ datasets==3.0.1
 tokenizers==0.21.2
 deepspeed
 pillow
+qwen-vl-utils
+torchvision

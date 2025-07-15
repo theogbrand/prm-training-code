@@ -5,7 +5,8 @@ from PIL import Image
 import torch
 from datasets import Dataset, DatasetDict, load_dataset
 import json
-from transformers import AutoModelForVision2Seq, AutoProcessor, LlavaForConditionalGeneration
+from transformers import AutoModelForVision2Seq, AutoProcessor, LlavaForConditionalGeneration, Qwen2VLProcessor
+from qwen_vl_utils import process_vision_info
 
 from trl import (
     ModelConfig,
@@ -68,6 +69,74 @@ def process_example_local(example):
         example['images'] = []  # Keep it as empty list for consistency
     
     return example
+
+def convert_sample_to_qwen_format(sample):
+    """
+    Convert sample from current schema to Qwen messages format
+    
+    Args:
+        sample: Dict with "messages" and "images" keys
+    
+    Returns:
+        Dict with "messages" key containing converted messages
+    """
+    messages = []
+    images = sample.get("images", [])
+    
+    for message in sample["messages"]:
+        converted_message = {
+            "role": message["role"],
+            "content": []
+        }
+        
+        for content_item in message["content"]:
+            if content_item["type"] == "text" and content_item["text"] is not None:
+                converted_message["content"].append({
+                    "type": "text",
+                    "text": content_item["text"]
+                })
+            elif content_item["type"] == "image":
+                # Handle image by index
+                image_index = content_item.get("index", 0)
+                if images and image_index < len(images):
+                    converted_message["content"].append({
+                        "type": "image",
+                        "image": images[image_index]
+                    })
+                else:
+                    # If no images provided, skip or handle as needed
+                    print(f"Warning: No image found for index {image_index}")
+        
+        # Only add messages that have content
+        if converted_message["content"]:
+            messages.append(converted_message)
+    
+    return {"messages": messages}
+
+# def format_data_for_qwen(sample):
+    # return {"messages": [
+    #             {
+    #                 "role": "system",
+    #                 "content": [{"type": "text", "text": system_message}],
+    #             },
+    #             {
+    #                 "role": "user",
+    #                 "content": [
+    #                     {
+    #                         "type": "text",
+    #                         "text": prompt.format(product_name=sample["Product Name"], category=sample["Category"]),
+    #                     },{
+    #                         "type": "image",
+    #                         "image": sample["image"],
+    #                     }
+    #                 ],
+    #             },
+    #             {
+    #                 "role": "assistant",
+    #                 "content": [{"type": "text", "text": sample["description"]}],
+    #             },
+    #         ],
+    #     }
 
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig))
@@ -137,10 +206,10 @@ if __name__ == "__main__":
     def collate_fn(examples):
         # Get the texts and images, and apply the chat template
         texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
-        images = [example["images"] for example in examples]
-        if isinstance(model, LlavaForConditionalGeneration):
-            # LLava1.5 does not support multiple images
-            images = [image[0] for image in images]
+        images = [process_vision_info(example["messages"])[0] for example in examples]
+        # if isinstance(model, LlavaForConditionalGeneration):
+        #     # LLava1.5 does not support multiple images
+        #     images = [image[0] for image in images]
 
         # Tokenize the texts and process the images
         batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
@@ -149,16 +218,24 @@ if __name__ == "__main__":
         labels = batch["input_ids"].clone()
         labels[labels == processor.tokenizer.pad_token_id] = -100  #
         # Ignore the image token index in the loss computation (model specific)
-        image_token_id = processor.tokenizer.convert_tokens_to_ids(processor.image_token)
-        labels[labels == image_token_id] = -100
-        batch["labels"] = labels
+        if isinstance(processor, Qwen2VLProcessor):
+            image_tokens = [151652,151653,151655]
+        else: 
+            image_tokens = [processor.tokenizer.convert_tokens_to_ids(processor.image_token)]
+        for image_token_id in image_tokens:
+            labels[labels == image_token_id] = -100
+            batch["labels"] = labels
 
         return batch
 
     ################
     # Dataset
     ################
-    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    # training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    dataset = load_dataset("ob11/ai2d-prm-training-data-v0.4-pil", split="train")
+    postprocessed_image_data = [convert_sample_to_qwen_format(sample) for sample in dataset]
+    print(postprocessed_image_data[345]["messages"])
+ 
 
     # load dataset from JSONL file
    # Load your JSONL file
@@ -175,9 +252,10 @@ if __name__ == "__main__":
 
     # # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
     # processed_data = [process_example_local(sample) for sample in data] 
+    # postprocessed_image_data = [convert_sample_to_qwen_format(sample) for sample in processed_data] 
     
     # convert to HF Dataset for training
-    # trainining_dataset = Dataset.from_list(processed_data)  # type: ignore
+    # trainining_dataset = Dataset.from_list(postprocessed_image_data)  # type: ignore
 
     # assert isinstance(trainining_dataset[345]["images"][0], Image), "Image is not a PIL.Image.Image"
 
@@ -194,7 +272,7 @@ if __name__ == "__main__":
         model=model,
         args=training_args,
         data_collator=collate_fn,
-        train_dataset=training_dataset[script_args.dataset_train_split], # train on full dataset for now
+        train_dataset=postprocessed_image_data, # train on full dataset for now
         eval_dataset=None,
         # eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
         processing_class=processor.tokenizer,
