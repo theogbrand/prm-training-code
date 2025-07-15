@@ -172,16 +172,21 @@ if __name__ == "__main__":
         for line in f:
             data.append(json.loads(line.strip()))
 
+    logging.info(f"loaded {len(data)} samples")
+    # logging.info(f"converting data to huggingface dataset {data[0]}")
     # convert to HF Dataset for training
-    training_dataset = Dataset.from_list(data)  # type: ignore
+    # training_dataset = Dataset.from_list(data)  # type: ignore
     # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
-    processed_data = [process_example_local(sample) for sample in training_dataset] 
+    logging.info(f"calling process_example_local on data, print sample: {data[0]}")
+    processed_data = [process_example_local(sample) for sample in data]
 
     print("🔍 Verifying image types...")
     for i in range(min(3, len(processed_data))):
         img = processed_data[i]['images'][0]
         print(f"Sample {i}: {type(img)}")
 
+    logging.info(f"converting processed_data to huggingface dataset {processed_data[0]}")
+    processed_hf_dataset = Dataset.from_list(processed_data)  # type: ignore
     ################
     # Training
     ################
@@ -189,7 +194,7 @@ if __name__ == "__main__":
         model=model,
         args=training_args,
         data_collator=collate_fn,
-        train_dataset=processed_data, # train on full dataset for now
+        train_dataset=processed_hf_dataset, # train on full dataset for now
         eval_dataset=None,
         # eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
         processing_class=processor.tokenizer,
