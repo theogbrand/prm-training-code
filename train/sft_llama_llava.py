@@ -58,15 +58,15 @@ def process_example_local(example):
                 pil_images.append(pil_image_rgb)
                 # pil_images.append(pil_image)  # Actually append the loaded image!
             else:
-                raise Exception(f"Warning: Local file not found: {local_path}")
+                logging.error(f"Warning: Local file not found: {local_path}")
         except Exception as e:
-            raise Exception(f"Error loading {local_path}: {e}")
+            logging.error(f"Error loading {local_path}: {e}")
     
     # Only update if we successfully loaded at least one image
     if pil_images:
         example['images'] = pil_images
     else:
-        raise Exception("Warning: No images loaded for example")
+        logging.error("Warning: No images loaded for example")
         example['images'] = []  # Keep it as empty list for consistency
     
     return example
@@ -173,12 +173,12 @@ if __name__ == "__main__":
             data.append(json.loads(line.strip()))
 
     logging.info(f"loaded {len(data)} samples")
-    # logging.info(f"converting data to huggingface dataset {data[0]}")
+    logging.info(f"converting data to huggingface dataset {data[0]}")
     # convert to HF Dataset for training
-    # training_dataset = Dataset.from_list(data)  # type: ignore
+    training_dataset = Dataset.from_list(data)  # type: ignore
     # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
-    logging.info(f"calling process_example_local on data, print sample: {data[0]}")
-    processed_data = [process_example_local(sample) for sample in data]
+    logging.info(f"calling process_example_local on training_dataset, print sample: {training_dataset[0]}")
+    processed_data = [process_example_local(sample) for sample in training_dataset]
 
     print("🔍 Verifying image types...")
     for i in range(min(3, len(processed_data))):
