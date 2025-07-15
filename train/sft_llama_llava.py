@@ -54,17 +54,19 @@ def process_example_local(example):
         try:
             if os.path.exists(local_path):
                 pil_image = Image.open(local_path)
-                pil_images.append(pil_image)  # Actually append the loaded image!
+                pil_image_rgb = pil_image.convert("RGB")
+                pil_images.append(pil_image_rgb)
+                # pil_images.append(pil_image)  # Actually append the loaded image!
             else:
-                print(f"Warning: Local file not found: {local_path}")
+                raise Exception(f"Warning: Local file not found: {local_path}")
         except Exception as e:
-            print(f"Error loading {local_path}: {e}")
+            raise Exception(f"Error loading {local_path}: {e}")
     
     # Only update if we successfully loaded at least one image
     if pil_images:
         example['images'] = pil_images
     else:
-        print("Warning: No images loaded for example")
+        raise Exception("Warning: No images loaded for example")
         example['images'] = []  # Keep it as empty list for consistency
     
     return example
@@ -158,34 +160,27 @@ if __name__ == "__main__":
     ################
     # Dataset
     ################
-    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    # training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
 
     # load dataset from JSONL file
    # Load your JSONL file
-    # file_path = "/mnt/fast10/brandon/mmr_rollout_data/prm_training_data/train/AI2D_final_mc_rollouts_with_all_models_verification_merged_prm_training_data_final_trl_format_mc0.0.jsonl"
+    file_path = "/home/ubuntu/porialab-us-south-2/ntu/brandon/prm-training-code/prm_training_data_full_v0/final_flattened_trl_format_prm_training_data_500k_mc0.8_v1.jsonl"
 
     # # Load data into a list
-    # data = []
-    # with open(file_path, 'r') as f:
-    #     for line in f:
-    #         data.append(json.loads(line.strip()))
+    data = []
+    with open(file_path, 'r') as f:
+        for line in f:
+            data.append(json.loads(line.strip()))
 
-    # print(f"Loaded {len(data)} samples") 
-    # print(data[345]["messages"])
-
-    # # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
-    # processed_data = [process_example_local(sample) for sample in data] 
-    
     # convert to HF Dataset for training
-    # trainining_dataset = Dataset.from_list(processed_data)  # type: ignore
+    training_dataset = Dataset.from_list(data)  # type: ignore
+    # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
+    processed_data = [process_example_local(sample) for sample in training_dataset] 
 
-    # assert isinstance(trainining_dataset[345]["images"][0], Image), "Image is not a PIL.Image.Image"
-
-    # # Create dataset dict (optional, for train/validation split)
-    # dataset_dict = DatasetDict({
-    #     "train": training_dataset
-    # })
-
+    print("🔍 Verifying image types...")
+    for i in range(min(3, len(processed_data))):
+        img = processed_data[i]['images'][0]
+        print(f"Sample {i}: {type(img)}")
 
     ################
     # Training
@@ -194,7 +189,7 @@ if __name__ == "__main__":
         model=model,
         args=training_args,
         data_collator=collate_fn,
-        train_dataset=training_dataset[script_args.dataset_train_split], # train on full dataset for now
+        train_dataset=processed_data, # train on full dataset for now
         eval_dataset=None,
         # eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
         processing_class=processor.tokenizer,
