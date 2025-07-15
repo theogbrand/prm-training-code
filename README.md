@@ -9,3 +9,5 @@
     - Checked Llava/Llama no specific process_vision function 
     - Gemma uses: https://github.com/huggingface/trl/blob/main/examples/scripts/sft_vlm_gemma3.py
     - Qwen use: https://github.com/QwenLM/Qwen2.5-VL/blob/main/qwen-vl-utils/src/qwen_vl_utils/vision_process.py#L321
+
+4. Check FSDP config later
