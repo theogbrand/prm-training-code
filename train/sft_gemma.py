@@ -118,8 +118,9 @@ def process_vision_info(messages: list[dict]) -> list[Image.Image]:
                 else:
                     image = element
                 if image is not None:
-                    image = Image.open(io.BytesIO(image["bytes"]))
-                    image_inputs.append(image.convert("RGB"))
+                    # image = Image.open(io.BytesIO(image["bytes"]))
+                    # image_inputs.append(image.convert("RGB"))
+                    image_inputs.append(image)
     return image_inputs
 
 
