@@ -234,7 +234,7 @@ if __name__ == "__main__":
     # training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
     dataset = load_dataset("ob11/ai2d-prm-training-data-v0.4-pil", split="train")
     postprocessed_image_data = [convert_sample_to_qwen_format(sample) for sample in dataset]
-    print(postprocessed_image_data[345]["messages"])
+    logging.info(f"example postprocessed_image_data[345]['messages']: {postprocessed_image_data[345]['messages']}")
  
 
     # load dataset from JSONL file
