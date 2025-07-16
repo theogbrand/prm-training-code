@@ -217,6 +217,11 @@ if __name__ == "__main__":
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs
     )
 
+    # Move model to GPU when using Flash Attention 2.0
+    if model_args.attn_implementation == "flash_attention_2" and torch.cuda.is_available():
+        model = model.to('cuda')
+        logging.info("Model moved to GPU for Flash Attention 2.0")
+
     logging.info("\n\nmodel_kwargs: %s", model_kwargs)
     logging.info("\nprocessor: %s", processor)
     logging.info("\nmodel: %s", model)
