@@ -139,7 +139,7 @@ if __name__ == "__main__":
     def collate_fn(examples):
         # Get the texts and images, and apply the chat template
         texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
-        images = [example["image"] for example in examples]
+        images = [[example["image"]] for example in examples] # multiple image support, hence the [] around example["image"] which is a single string
         if isinstance(model, LlavaForConditionalGeneration):
             # LLava1.5 does not support multiple images
             images = [image[0] for image in images]
