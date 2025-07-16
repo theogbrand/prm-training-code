@@ -9,3 +9,4 @@ sft-meta-llama-3.2-11b-vision-instruct-20250712_050546/*
 training_outputs/*
 prm_training_data_full_v0/*
 cache/*
+prm-training-data-qwen/*

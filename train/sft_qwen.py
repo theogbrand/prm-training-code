@@ -7,6 +7,7 @@ from datasets import Dataset, DatasetDict, load_dataset
 import json
 from transformers import AutoModelForVision2Seq, AutoProcessor, LlavaForConditionalGeneration, Qwen2VLProcessor
 from qwen_vl_utils import process_vision_info
+from datasets import load_from_disk
 
 from trl import (
     ModelConfig,
@@ -46,72 +47,72 @@ For meta-llama/Llama-3.2-11B-Vision-Instruct, use: (requires transformers>=4.45.
     --model_name_or_path meta-llama/Llama-3.2-11B-Vision-Instruct
 """
         
-def process_example_local(example):
-    """Load images from local files"""
-    pil_images = []
-    for s3_url in example['images']:
-        cwd_abs_path = os.path.abspath(os.getcwd())
-        local_path = s3_url.replace("s3://arf-share/arf-ob1-mm-reasoning/", cwd_abs_path + "/")
-        try:
-            if os.path.exists(local_path):
-                pil_image = Image.open(local_path)
-                pil_images.append(pil_image)  # Actually append the loaded image!
-            else:
-                print(f"Warning: Local file not found: {local_path}")
-        except Exception as e:
-            print(f"Error loading {local_path}: {e}")
+# def process_example_local(example):
+#     """Load images from local files"""
+#     pil_images = []
+#     for s3_url in example['images']:
+#         cwd_abs_path = os.path.abspath(os.getcwd())
+#         local_path = s3_url.replace("s3://arf-share/arf-ob1-mm-reasoning/", cwd_abs_path + "/")
+#         try:
+#             if os.path.exists(local_path):
+#                 pil_image = Image.open(local_path)
+#                 pil_images.append(pil_image)  # Actually append the loaded image!
+#             else:
+#                 print(f"Warning: Local file not found: {local_path}")
+#         except Exception as e:
+#             print(f"Error loading {local_path}: {e}")
     
-    # Only update if we successfully loaded at least one image
-    if pil_images:
-        example['images'] = pil_images
-    else:
-        print("Warning: No images loaded for example")
-        example['images'] = []  # Keep it as empty list for consistency
+#     # Only update if we successfully loaded at least one image
+#     if pil_images:
+#         example['images'] = pil_images
+#     else:
+#         print("Warning: No images loaded for example")
+#         example['images'] = []  # Keep it as empty list for consistency
     
-    return example
+#     return example
 
-def convert_sample_to_qwen_format(sample):
-    """
-    Convert sample from current schema to Qwen messages format
+# def convert_sample_to_qwen_format(sample):
+#     """
+#     Convert sample from current schema to Qwen messages format
     
-    Args:
-        sample: Dict with "messages" and "images" keys
+#     Args:
+#         sample: Dict with "messages" and "images" keys
     
-    Returns:
-        Dict with "messages" key containing converted messages
-    """
-    messages = []
-    images = sample.get("images", [])
+#     Returns:
+#         Dict with "messages" key containing converted messages
+#     """
+#     messages = []
+#     images = [sample.get("image", [])]
     
-    for message in sample["messages"]:
-        converted_message = {
-            "role": message["role"],
-            "content": []
-        }
+#     for message in sample["messages"]:
+#         converted_message = {
+#             "role": message["role"],
+#             "content": []
+#         }
         
-        for content_item in message["content"]:
-            if content_item["type"] == "text" and content_item["text"] is not None:
-                converted_message["content"].append({
-                    "type": "text",
-                    "text": content_item["text"]
-                })
-            elif content_item["type"] == "image":
-                # Handle image by index
-                image_index = content_item.get("index", 0)
-                if images and image_index < len(images):
-                    converted_message["content"].append({
-                        "type": "image",
-                        "image": images[image_index]
-                    })
-                else:
-                    # If no images provided, skip or handle as needed
-                    print(f"Warning: No image found for index {image_index}")
+#         for content_item in message["content"]:
+#             if content_item["type"] == "text" and content_item["text"] is not None:
+#                 converted_message["content"].append({
+#                     "type": "text",
+#                     "text": content_item["text"]
+#                 })
+#             elif content_item["type"] == "image":
+#                 # Handle image by index
+#                 image_index = content_item.get("index", 0)
+#                 if images and image_index < len(images):
+#                     converted_message["content"].append({
+#                         "type": "image",
+#                         "image": images[image_index]
+#                     })
+#                 else:
+#                     # If no images provided, skip or handle as needed
+#                     print(f"Warning: No image found for index {image_index}")
         
-        # Only add messages that have content
-        if converted_message["content"]:
-            messages.append(converted_message)
+#         # Only add messages that have content
+#         if converted_message["content"]:
+#             messages.append(converted_message)
     
-    return {"messages": messages}
+#     return {"messages": messages}
 
 # def format_data_for_qwen(sample):
     # return {"messages": [
@@ -232,9 +233,16 @@ if __name__ == "__main__":
     # Dataset
     ################
     # training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
-    dataset = load_dataset("ob11/ai2d-prm-training-data-v0.4-pil", split="train")
-    postprocessed_image_data = [convert_sample_to_qwen_format(sample) for sample in dataset]
-    logging.info(f"example postprocessed_image_data[345]['messages']: {postprocessed_image_data[345]['messages']}")
+    # dataset = load_dataset("ob11/ai2d-prm-training-data-v0.4-pil", split="train")
+
+    training_dataset = load_from_disk("prm-training-data-qwen")
+    logging.info(f"training_dataset: {training_dataset}")
+
+    # we cannot do this for large datasets, so we do it at dataset level
+    # postprocessed_image_data = training_dataset["train"]
+    # logging.info(f"example postprocessed_image_data[345]['messages']: {postprocessed_image_data[345]['messages']}")
+
+    # postprocessed_image_data = [convert_sample_to_qwen_format(sample) for sample in training_dataset["train"]]
  
 
     # load dataset from JSONL file
@@ -272,7 +280,7 @@ if __name__ == "__main__":
         model=model,
         args=training_args,
         data_collator=collate_fn,
-        train_dataset=postprocessed_image_data, # train on full dataset for now
+        train_dataset=training_dataset["train"], # train on full dataset for now
         eval_dataset=None,
         # eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
         processing_class=processor.tokenizer,
