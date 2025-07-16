@@ -3,7 +3,7 @@ import logging
 from datetime import datetime
 from PIL import Image
 import torch
-from datasets import Dataset, DatasetDict, load_dataset
+from datasets import Dataset, DatasetDict, load_dataset, load_from_disk
 import json
 from transformers import AutoModelForVision2Seq, AutoProcessor, LlavaForConditionalGeneration
 
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     def collate_fn(examples):
         # Get the texts and images, and apply the chat template
         texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
-        images = [example["images"] for example in examples]
+        images = [example["image"] for example in examples]
         if isinstance(model, LlavaForConditionalGeneration):
             # LLava1.5 does not support multiple images
             images = [image[0] for image in images]
@@ -160,7 +160,9 @@ if __name__ == "__main__":
     ################
     # Dataset
     ################
-    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config, token="TO ADD HERE")
+    # training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config, token="TO ADD HERE")
+    training_dataset = load_from_disk("cache")
+    logging.info(f"training_dataset: {training_dataset}")
 
     # load dataset from JSONL file
     # file_path = "/home/ubuntu/porialab-us-south-2/ntu/brandon/prm-training-code/prm_training_data_full_v0/final_flattened_trl_format_prm_training_data_500k_mc0.8_v1.jsonl"
