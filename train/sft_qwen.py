@@ -1,6 +1,7 @@
 import os
 import logging
 from datetime import datetime
+from dataclasses import dataclass, field
 from PIL import Image
 import torch
 from datasets import Dataset, DatasetDict, load_dataset
@@ -21,6 +22,20 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+@dataclass
+class DataArguments:
+    """
+    Arguments for data processing
+    """
+    max_pixels: int = field(
+        default=256*28*28,  # Reduced from 576*28*28 for memory efficiency
+        metadata={"help": "Maximum pixels for image processing (H*W)"}
+    )
+    min_pixels: int = field(
+        default=16*28*28,
+        metadata={"help": "Minimum pixels for image processing (H*W)"}
+    )
 
 """
 pip install pillow
@@ -140,11 +155,15 @@ For meta-llama/Llama-3.2-11B-Vision-Instruct, use: (requires transformers>=4.45.
     #     }
 
 if __name__ == "__main__":
-    parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig))
-    script_args, training_args, model_args = parser.parse_args_and_config()
+    parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig, DataArguments))
+    script_args, training_args, model_args, data_args = parser.parse_args_and_config()
+    
+    # Memory-saving configurations to prevent OOM
+    training_args.gradient_checkpointing = True
     training_args.gradient_checkpointing_kwargs = dict(use_reentrant=False)
     training_args.remove_unused_columns = False
     training_args.dataset_kwargs = {"skip_prepare_dataset": True}
+    model_args.attn_implementation = "flash_attention_2"
     
     # Set logging directory to output_dir with datetime suffix
     if training_args.output_dir:
@@ -173,6 +192,7 @@ if __name__ == "__main__":
     logging.info("\n\nscript_args: %s", script_args)
     logging.info("\ntraining_args: %s", training_args)
     logging.info("\nmodel_args: %s", model_args)
+    logging.info("\ndata_args: %s", data_args)
     logging.info("\n\n")
 
     ################
@@ -213,7 +233,11 @@ if __name__ == "__main__":
         #     images = [image[0] for image in images]
 
         # Tokenize the texts and process the images
+        # You can now use data_args.max_pixels and data_args.min_pixels here if needed
+        # For example, when processing images with specific size constraints
         batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
+        processor.max_pixels = data_args.max_pixels
+        processor.min_pixels = data_args.min_pixels
 
         # The labels are the input_ids, and we mask the padding tokens in the loss computation
         labels = batch["input_ids"].clone()
@@ -232,11 +256,13 @@ if __name__ == "__main__":
     ################
     # Dataset
     ################
-    # training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
-    # dataset = load_dataset("ob11/ai2d-prm-training-data-v0.4-pil", split="train")
+    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    
+    # You can now use data_args.max_pixels and data_args.min_pixels in your dataset processing
+    logging.info(f"Using max_pixels: {data_args.max_pixels}, min_pixels: {data_args.min_pixels}")
 
-    training_dataset = load_from_disk("prm-training-data-qwen")
-    logging.info(f"training_dataset: {training_dataset}")
+    # training_dataset = load_from_disk("prm-training-data-qwen")
+    # logging.info(f"training_dataset: {training_dataset}")
 
     # we cannot do this for large datasets, so we do it at dataset level
     # postprocessed_image_data = training_dataset["train"]
