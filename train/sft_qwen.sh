@@ -3,7 +3,7 @@
 uid="$(date +%Y%m%d_%H%M%S)"
 base_model="Qwen/Qwen2.5-VL-3B-Instruct"
 # base_model="Qwen/Qwen2.5-VL-32B-Instruct"
-dataset_name="ob11/ai2d-prm-training-data-v0.4-pil"
+dataset_name="ob11/visual-prm-training-data-v1-mc0.8-qwen-format"
 lr=2e-5
 epochs=2
 micro_batch_size=1 # -> batch_size will be 64 if 8 gpus, per device batch size in single node
