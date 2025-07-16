@@ -160,33 +160,33 @@ if __name__ == "__main__":
     ################
     # Dataset
     ################
-    # training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config, token="TO ADD HERE")
 
     # load dataset from JSONL file
-   # Load your JSONL file
-    file_path = "/home/ubuntu/porialab-us-south-2/ntu/brandon/prm-training-code/prm_training_data_full_v0/final_flattened_trl_format_prm_training_data_500k_mc0.8_v1.jsonl"
+    # file_path = "/home/ubuntu/porialab-us-south-2/ntu/brandon/prm-training-code/prm_training_data_full_v0/final_flattened_trl_format_prm_training_data_500k_mc0.8_v1.jsonl"
 
-    # # Load data into a list
-    data = []
-    with open(file_path, 'r') as f:
-        for line in f:
-            data.append(json.loads(line.strip()))
+    # # # Load data into a list
+    # data = []
+    # with open(file_path, 'r') as f:
+    #     for line in f:
+    #         data.append(json.loads(line.strip()))
 
-    logging.info(f"loaded {len(data)} samples")
-    logging.info(f"converting data to huggingface dataset {data[0]}")
-    # convert to HF Dataset for training
-    training_dataset = Dataset.from_list(data)  # type: ignore
-    # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
-    logging.info(f"calling process_example_local on training_dataset, print sample: {training_dataset[0]}")
-    processed_data = [process_example_local(sample) for sample in training_dataset]
+    # logging.info(f"loaded {len(data)} samples")
+    # logging.info(f"converting data to huggingface dataset {data[0]}")
+    # # convert to HF Dataset for training
+    # training_dataset = Dataset.from_list(data)  # type: ignore
+    # # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
+    # logging.info(f"calling process_example_local on training_dataset, print sample: {training_dataset[0]}")
+    # processed_data = [process_example_local(sample) for sample in training_dataset]
 
-    print("🔍 Verifying image types...")
-    for i in range(min(3, len(processed_data))):
-        img = processed_data[i]['images'][0]
-        print(f"Sample {i}: {type(img)}")
+    # print("🔍 Verifying image types...")
+    # for i in range(min(3, len(processed_data))):
+    #     img = processed_data[i]['images'][0]
+    #     print(f"Sample {i}: {type(img)}")
 
-    logging.info(f"converting processed_data to huggingface dataset {processed_data[0]}")
-    processed_hf_dataset = Dataset.from_list(processed_data)  # type: ignore
+    # logging.info(f"converting processed_data to huggingface dataset {processed_data[0]}")
+    # processed_hf_dataset = Dataset.from_list(processed_data)  # type: ignore
+
     ################
     # Training
     ################
@@ -194,7 +194,7 @@ if __name__ == "__main__":
         model=model,
         args=training_args,
         data_collator=collate_fn,
-        train_dataset=processed_hf_dataset, # train on full dataset for now
+        train_dataset=training_dataset[script_args.dataset_train_split], # train on full dataset for now
         eval_dataset=None,
         # eval_dataset=dataset[script_args.dataset_test_split] if training_args.eval_strategy != "no" else None,
         processing_class=processor.tokenizer,

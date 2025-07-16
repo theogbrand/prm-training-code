@@ -2,6 +2,7 @@
 # {'train_runtime': 5268.8407, 'train_samples_per_second': 0.949, 'train_steps_per_second': 0.119, 'train_loss': 0.1172730620391667, 'epoch': 5.0}
 uid="$(date +%Y%m%d_%H%M%S)"
 base_model="llava-hf/llava-v1.6-mistral-7b-hf"
+# dataset_name="ob11/ai2d-prm-training-data-v0.4-pil"
 dataset_name="ob11/ai2d-prm-training-data-v0-full-test"
 lr=2e-5
 epochs=2
