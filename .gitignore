@@ -10,3 +10,4 @@ training_outputs/*
 prm_training_data_full_v0/*
 cache/*
 prm-training-data-qwen/*
+.env

@@ -8,3 +8,4 @@ pillow
 qwen-vl-utils
 torchvision
 wandb
+python-dotenv

@@ -16,6 +16,10 @@ from trl import (
     get_kbit_device_map,
 )
 import warnings
+import dotenv
+
+dotenv.load_dotenv()
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -160,9 +164,15 @@ if __name__ == "__main__":
     ################
     # Dataset
     ################
-    # training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config, token="TO ADD HERE")
-    training_dataset = load_from_disk("cache")
-    logging.info(f"training_dataset: {training_dataset}")
+    if os.getenv("HF_TOKEN") is None:
+        raise ValueError("HF_TOKEN is not set")
+    else:
+        logging.info(f"HF_TOKEN: {os.getenv('HF_TOKEN')[:5]}...")
+
+
+    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config, token=os.getenv("HF_TOKEN"))
+    # training_dataset = load_from_disk("cache")
+    # logging.info(f"training_dataset: {training_dataset}")
 
     # load dataset from JSONL file
     # file_path = "/home/ubuntu/porialab-us-south-2/ntu/brandon/prm-training-code/prm_training_data_full_v0/final_flattened_trl_format_prm_training_data_500k_mc0.8_v1.jsonl"

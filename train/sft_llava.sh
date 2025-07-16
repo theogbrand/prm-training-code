@@ -3,7 +3,7 @@
 uid="$(date +%Y%m%d_%H%M%S)"
 base_model="llava-hf/llava-v1.6-mistral-7b-hf"
 # dataset_name="ob11/ai2d-prm-training-data-v0.4-pil"
-dataset_name="ob11/ai2d-prm-training-data-v0-full-test"
+dataset_name="ob11/ai2d-prm-training-data-v1-full-test"
 lr=2e-5
 epochs=2
 micro_batch_size=8 # -> batch_size will be 64 if 8 gpus, per device batch size in single node
