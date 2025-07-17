@@ -3,8 +3,8 @@
 #PBS -j oe
 #PBS -k oed
 #PBS -N qwen-sft-32b-training
-#PBS -o logs/
-#PBS -l select=12:ngpus=8:ncpus=100:mem=2000gb
+#PBS -o pbs_queue_logs/
+#PBS -l select=1:ngpus=8:ncpus=112:mem=2000gb
 #PBS -l walltime=1440:00:00
 
 cd $PBS_O_WORKDIR
