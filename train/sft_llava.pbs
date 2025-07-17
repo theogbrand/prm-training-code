@@ -3,7 +3,7 @@
 #PBS -j oe
 #PBS -k oed
 #PBS -N LLava-v1.6-Vicuna-7B-MC0.0-hf-format
-#PBS -o pbs_queue_logs/sft_llava_vicuna_v1.6_mc0.0.out
+#PBS -o pbs_queue_logs/
 #PBS -l select=1:ngpus=8:ncpus=112:mem=2000gb
 #PBS -l walltime=336:00:00
 
