@@ -5,9 +5,16 @@
 #PBS -N qwen-sft-32b-training
 #PBS -o pbs_queue_logs/
 #PBS -l select=1:ngpus=8:ncpus=112:mem=2000gb
-#PBS -l walltime=1440:00:00
+#PBS -l walltime=336:00:00
 
 cd $PBS_O_WORKDIR
+
+source .venv/bin/activate
+source .env.pbs
+
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export NCCL_DEBUG=INFO
+export HF_HOME=/scratch_aisg/SPEC-SF-AISG/cache/huggingface
 
 # Reference Running: qsub sft_qwen.pbs
 uid="$(date +%Y%m%d_%H%M%S)"
