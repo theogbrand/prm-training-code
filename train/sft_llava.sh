@@ -1,9 +1,9 @@
 # Reference Running: bash train/sft.sh
 # {'train_runtime': 5268.8407, 'train_samples_per_second': 0.949, 'train_steps_per_second': 0.119, 'train_loss': 0.1172730620391667, 'epoch': 5.0}
 uid="$(date +%Y%m%d_%H%M%S)"
-base_model="llava-hf/llava-v1.6-mistral-7b-hf"
+base_model="liuhaotian/llava-v1.6-mistral-7b"
 # dataset_name="ob11/ai2d-prm-training-data-v0.4-pil"
-dataset_name="ob11/ai2d-prm-training-data-v1-full-test"
+dataset_name="ob11/visual-prm-training-data-v1-mc0.0"
 lr=2e-5
 epochs=2
 micro_batch_size=8 # -> batch_size will be 64 if 8 gpus, per device batch size in single node
