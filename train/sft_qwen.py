@@ -18,6 +18,9 @@ from trl import (
     TrlParser,
     get_kbit_device_map,
 )
+import dotenv
+dotenv.load_dotenv()
+
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 
@@ -261,7 +264,12 @@ if __name__ == "__main__":
     ################
     # Dataset
     ################
-    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config)
+    if os.getenv("HF_TOKEN") is None:
+        raise ValueError("HF_TOKEN is not set")
+    else:
+        logging.info(f"HF_TOKEN: {os.getenv('HF_TOKEN')[:5]}...")
+
+    training_dataset = load_dataset(script_args.dataset_name, name=script_args.dataset_config, token=os.getenv("HF_TOKEN"))
     
     # You can now use data_args.max_pixels and data_args.min_pixels in your dataset processing
     logging.info(f"Using max_pixels: {data_args.max_pixels}, min_pixels: {data_args.min_pixels}")
