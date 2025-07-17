@@ -2,8 +2,8 @@
 #PBS -q AISG_large
 #PBS -j oe
 #PBS -k oed
-#PBS -N qwen-sft-32b-training
-#PBS -o pbs_queue_logs/
+#PBS -N Qwen2.5-VL-7B-Instruct
+#PBS -o pbs_queue_logs/sft_qwen_${PBS_JOBID}.out
 #PBS -l select=1:ngpus=8:ncpus=112:mem=2000gb
 #PBS -l walltime=336:00:00
 
