@@ -187,9 +187,9 @@ if __name__ == "__main__":
     if training_args.run_name.startswith("training_outputs/"):
         # Remove training_outputs/ prefix and keep the rest
         run_name_without_prefix = training_args.run_name.replace("training_outputs/", "", 1)
-        training_args.run_name = f"{run_name_without_prefix}-{training_args.learning_rate}-{training_args.gradient_accumulation_steps}"
+        training_args.run_name = f"{run_name_without_prefix}-lr-{training_args.learning_rate}-grad-steps-{training_args.gradient_accumulation_steps}-bs-{training_args.per_device_train_batch_size}"
     else:
-        training_args.run_name = f"{training_args.run_name}-{training_args.learning_rate}-{training_args.gradient_accumulation_steps}"
+        training_args.run_name = f"{training_args.run_name}-lr-{training_args.learning_rate}-grad-steps-{training_args.gradient_accumulation_steps}-bs-{training_args.per_device_train_batch_size}"
     
     # Set up file logging to the logging directory for physical text logs
     if training_args.logging_dir:
