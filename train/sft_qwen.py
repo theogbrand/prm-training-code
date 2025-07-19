@@ -167,8 +167,8 @@ if __name__ == "__main__":
     training_args.remove_unused_columns = False
     training_args.dataset_kwargs = {"skip_prepare_dataset": True}
     model_args.attn_implementation = "flash_attention_2"
-    training_args.learning_rate = training_args.learning_rate * training_args.gradient_accumulation_steps # Linear scaling rule
-    # training_args.learning_rate = training_args.learning_rate * (training_args.gradient_accumulation_steps ** 0.5) # square root scaling rule
+    # training_args.learning_rate = training_args.learning_rate * training_args.gradient_accumulation_steps # Linear scaling rule
+    training_args.learning_rate = training_args.learning_rate * (training_args.gradient_accumulation_steps ** 0.5) # square root scaling rule
     
     # Set logging directory to output_dir with datetime suffix
     if training_args.output_dir:
