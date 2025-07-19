@@ -1,20 +1,24 @@
-# Reference Running: bash train/sft.sh
-# {'train_runtime': 5268.8407, 'train_samples_per_second': 0.949, 'train_steps_per_second': 0.119, 'train_loss': 0.1172730620391667, 'epoch': 5.0}
+source .venv/bin/activate
+source .env.pbs
+
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export NCCL_DEBUG=INFO
+export HF_HOME=/scratch_aisg/SPEC-SF-AISG/cache/huggingface
+
+# Reference Running: qsub train/sft_qwen.pbs
 uid="$(date +%Y%m%d_%H%M%S)"
-# base_model="Qwen/Qwen2.5-VL-3B-Instruct"
 # base_model="Qwen/Qwen2.5-VL-7B-Instruct"
 base_model="Qwen/Qwen2.5-VL-32B-Instruct"
-# dataset_name="ob11/ai2d-prm-training-data-v0.4-pil"
 dataset_name="ob11/visual-prm-training-data-v1-mc0.0-qwen-format"
-lr=2e-5
 epochs=2
-micro_batch_size=1 # -> batch_size will be 64 if 8 gpus, per device batch size in single node
-gradient_accumulation_steps=1 # requires more GPU memory
-max_steps=-1
+micro_batch_size=1 # -> batch_size will be 64 if 8 gpus, per device batch size in single node; max this without OOM
+gradient_accumulation_steps=1 # gradually increase first, requires more GPU memory but less than increasing micro_batch_size
+lr=5e-6
+max_steps=-1 # -> not used now
 min_lr=0 # -> not used now
 weight_decay=1e-4 # -> not used now
-gpu_count=$(nvidia-smi -L | wc -l)
-push_to_hub=false
+gpu_count=$(nvidia-smi -L | wc -l) # -> not used now
+push_to_hub=false # -> not used now
 
 accelerate launch --config_file=train/deepspeed_zero3.yaml \
     train/sft_qwen.py \
@@ -26,6 +30,5 @@ accelerate launch --config_file=train/deepspeed_zero3.yaml \
     --bf16 True \
     --torch_dtype bfloat16 \
     --gradient_checkpointing \
-    --num_train_epochs ${epochs}  
-    # --gradient_checkpointing=True  # Enable gradient checkpointing for efficient memory usage with 8 H100 GPUs.
-    # --accelerator_config='{"gradient_accumulation_kwargs": {"sync_each_batch": true}}'
+    --num_train_epochs ${epochs} \
+    --learning_rate ${lr} 
