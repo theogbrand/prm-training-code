@@ -7,14 +7,33 @@
 #PBS -l select=1:ngpus=8:ncpus=96:mem=1600gb
 #PBS -l walltime=336:00:00
 
+# Ensure immediate log flushing
+exec > >(stdbuf -oL tee -a "${PBS_O_WORKDIR}/pbs_queue_logs/Qwen2.5-VL-32B-Instruct-mc0.0-lr-5e6-scaling-bs1-grad1.out")
+exec 2>&1
+
 cd $PBS_O_WORKDIR
 
+# Check if virtual environment exists
+if [ ! -d ".venv" ]; then
+    echo "ERROR: Virtual environment .venv not found in $PWD"
+    exit 1
+fi
+
 source .venv/bin/activate
-source .env.pbs
+
+# Source environment file if it exists, otherwise warn
+if [ -f ".env.pbs" ]; then
+    source .env.pbs
+else
+    echo "WARNING: .env.pbs file not found, continuing without it"
+fi
 
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 export NCCL_DEBUG=INFO
 export HF_HOME=/scratch_aisg/SPEC-SF-AISG/cache/huggingface
+
+# Force immediate output flushing
+export PYTHONUNBUFFERED=1
 
 # Reference Running: qsub train/sft_qwen.pbs
 uid="$(date +%Y%m%d_%H%M%S)"
@@ -31,6 +50,11 @@ weight_decay=1e-4 # -> not used now
 gpu_count=$(nvidia-smi -L | wc -l) # -> not used now
 push_to_hub=false # -> not used now
 
+echo "Starting training at $(date)"
+echo "Working directory: $PWD"
+echo "Python path: $(which python)"
+echo "CUDA devices: $CUDA_VISIBLE_DEVICES"
+
 accelerate launch --config_file=train/deepspeed_zero3.yaml \
     train/sft_qwen.py \
     --dataset_name ${dataset_name} \
@@ -42,4 +66,9 @@ accelerate launch --config_file=train/deepspeed_zero3.yaml \
     --torch_dtype bfloat16 \
     --gradient_checkpointing \
     --num_train_epochs ${epochs} \
-    --learning_rate ${lr} 
+    --learning_rate ${lr}
+
+exit_code=$?
+echo "Training completed with exit code: $exit_code at $(date)"
+
+exit $exit_code 
