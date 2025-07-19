@@ -3,7 +3,7 @@
 #PBS -j oe
 #PBS -k oed
 #PBS -N Qwen2.5-VL-7B-Instruct-mc0.0-lr-sqrt-lr-scaling-bs1-grad4
-#PBS -o ./logs/
+#PBS -o logs/
 #PBS -l select=1:ngpus=8:ncpus=112:mem=2000gb
 #PBS -l walltime=336:00:00
 
