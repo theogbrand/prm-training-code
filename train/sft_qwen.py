@@ -167,6 +167,7 @@ if __name__ == "__main__":
     training_args.remove_unused_columns = False
     training_args.dataset_kwargs = {"skip_prepare_dataset": True}
     model_args.attn_implementation = "flash_attention_2"
+    training_args.learning_rate = training_args.learning_rate * training_args.gradient_accumulation_steps # Linear scaling rule
     
     # Set logging directory to output_dir with datetime suffix
     if training_args.output_dir:
@@ -181,6 +182,13 @@ if __name__ == "__main__":
     os.environ["WANDB_PROJECT"] = "multimodal-reasoning"
     os.environ["WANDB_ENTITY"] = "aisg-arf"
     logging.info("Enabled Weights & Biases reporting with project: multimodal-reasoning")
+    # Parse out training_outputs prefix and restructure run name
+    if training_args.run_name.startswith("training_outputs/"):
+        # Remove training_outputs/ prefix and keep the rest
+        run_name_without_prefix = training_args.run_name.replace("training_outputs/", "", 1)
+        training_args.run_name = f"{run_name_without_prefix}-{training_args.learning_rate}-{training_args.gradient_accumulation_steps}"
+    else:
+        training_args.run_name = f"{training_args.run_name}-{training_args.learning_rate}-{training_args.gradient_accumulation_steps}"
     
     # Set up file logging to the logging directory for physical text logs
     if training_args.logging_dir:
