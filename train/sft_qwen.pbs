@@ -2,8 +2,8 @@
 #PBS -q AISG_large
 #PBS -j oe
 #PBS -k oed
-#PBS -N Qwen2.5-VL-32B-Instruct-mc0.0-lr-1e7-scaling-bs1-grad1
-#PBS -o logs/
+#PBS -N Qwen2.5-VL-32B-Instruct-mc0.0-lr-5e6-scaling-bs1-grad1
+#PBS -o pbs_queue_logs/Qwen2.5-VL-32B-Instruct-mc0.0-lr-5e6-scaling-bs1-grad1.out
 #PBS -l select=1:ngpus=8:ncpus=112:mem=2000gb
 #PBS -l walltime=336:00:00
 
@@ -24,7 +24,7 @@ dataset_name="ob11/visual-prm-training-data-v1-mc0.0-qwen-format"
 epochs=2
 micro_batch_size=1 # -> batch_size will be 64 if 8 gpus, per device batch size in single node; max this without OOM
 gradient_accumulation_steps=1 # gradually increase first, requires more GPU memory but less than increasing micro_batch_size
-lr=1e-7
+lr=5e-6
 max_steps=-1 # -> not used now
 min_lr=0 # -> not used now
 weight_decay=1e-4 # -> not used now
