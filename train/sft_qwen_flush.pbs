@@ -8,7 +8,7 @@
 #PBS -l walltime=336:00:00
 
 # Ensure immediate log flushing
-exec > >(stdbuf -oL tee -a "${PBS_O_WORKDIR}/pbs_queue_logs/Qwen2.5-VL-32B-Instruct-mc0.0-lr-5e6-scaling-bs1-grad1.out")
+exec > >(stdbuf -oL tee -a "${PBS_O_WORKDIR}/pbs_queue_logs/Qwen2.5-VL-32B-Instruct-mc0.0-lr-1e7-scaling-bs1-grad1.out")
 exec 2>&1
 
 cd $PBS_O_WORKDIR
