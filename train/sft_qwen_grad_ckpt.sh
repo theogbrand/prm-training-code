@@ -19,7 +19,7 @@ weight_decay=1e-4 # -> not used now
 gpu_count=$(nvidia-smi -L | wc -l) # -> not used now
 push_to_hub=false # -> not used now
 
-accelerate launch --config_file=train/deepspeed_zero3.yaml \
+accelerate launch --config_file=train/deepspeed_zero3_grad_ckpt.yaml \
     train/sft_qwen.py \
     --dataset_name ${dataset_name} \
     --model_name_or_path ${base_model} \
@@ -28,6 +28,7 @@ accelerate launch --config_file=train/deepspeed_zero3.yaml \
     --output_dir training_outputs/sft-$(echo ${dataset_name} | rev | cut -d'-' -f1-5 | rev)-${base_model}-${uid} \
     --bf16 True \
     --torch_dtype bfloat16 \
-    --gradient_checkpointing \
     --num_train_epochs ${epochs} \
-    --learning_rate ${lr} 
+    --learning_rate ${lr} \
+    --gradient_checkpointing=True \
+    --accelerator_config='{"gradient_accumulation_kwargs": {"sync_each_batch": true}}' \
