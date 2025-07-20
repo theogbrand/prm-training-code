@@ -1,0 +1,81 @@
+#!/bin/bash
+#PBS -q AISG_large
+#PBS -j oe
+#PBS -k oed
+
+#PBS -l select=1:ngpus=8:ncpus=96:mem=1600gb
+#PBS -l walltime=336:00:00
+
+# PBS handles output redirection via -o option
+
+echo "PBS_OUTPUT_FILE: ${PBS_OUTPUT_FILE}"
+# Ensure immediate log flushing
+exec > >(stdbuf -oL tee -a "${PBS_OUTPUT_FILE}")
+exec 2>&1
+
+cd $PBS_O_WORKDIR
+
+# Check if virtual environment exists
+if [ ! -d ".venv" ]; then
+    echo "ERROR: Virtual environment .venv not found in $PWD"
+    exit 1
+fi
+
+source .venv/bin/activate
+
+# Source environment file if it exists, otherwise warn
+if [ -f ".env.pbs" ]; then
+    source .env.pbs
+else
+    echo "WARNING: .env.pbs file not found, continuing without it"
+fi
+
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export NCCL_DEBUG=INFO
+export HF_HOME=/scratch_aisg/SPEC-SF-AISG/cache/huggingface
+
+# Force immediate output flushing
+export PYTHONUNBUFFERED=1
+
+# Reference Running: qsub train/sft_qwen.pbs
+uid="$(date +%Y%m%d_%H%M%S)"
+base_model="Qwen/Qwen2.5-VL-7B-Instruct"
+# base_model="Qwen/Qwen2.5-VL-32B-Instruct"
+dataset_name="ob11/visual-prm-training-data-v1-mc0.0-qwen-format"
+epochs=2
+
+# Use environment variables with defaults
+micro_batch_size=${MICRO_BATCH_SIZE:-1}
+gradient_accumulation_steps=${GRADIENT_ACCUMULATION_STEPS:-1}
+
+lr=2e-5
+max_steps=-1 # -> not used now
+min_lr=0 # -> not used now
+weight_decay=1e-4 # -> not used now
+gpu_count=$(nvidia-smi -L | wc -l) # -> not used now
+push_to_hub=false # -> not used now
+
+echo "Starting training at $(date)"
+echo "Working directory: $PWD"
+echo "Python path: $(which python)"
+echo "CUDA devices: $CUDA_VISIBLE_DEVICES"
+echo "Micro batch size: ${micro_batch_size}"
+echo "Gradient accumulation steps: ${gradient_accumulation_steps}"
+
+accelerate launch --config_file=train/deepspeed_zero3.yaml \
+    train/sft_qwen.py \
+    --dataset_name ${dataset_name} \
+    --model_name_or_path ${base_model} \
+    --per_device_train_batch_size ${micro_batch_size} \
+    --gradient_accumulation_steps ${gradient_accumulation_steps} \
+    --output_dir training_outputs/sft-$(echo ${dataset_name} | rev | cut -d'-' -f1-5 | rev)-${base_model}-${uid} \
+    --bf16 True \
+    --torch_dtype bfloat16 \
+    --gradient_checkpointing \
+    --num_train_epochs ${epochs} \
+    --learning_rate ${lr}
+
+exit_code=$?
+echo "Training completed with exit code: $exit_code at $(date)"
+
+exit $exit_code 
