@@ -5,7 +5,7 @@ micro_batch_sizes=(2 4)
 gradient_accumulation_steps=(2 4)
 
 # Base job name
-base_job_name="Qwen25-VL-7B-Instruct-mc00-lr2e-5-sweep"
+base_job_name="Qwen25-VL-32B-Instruct-mc00-lr2e-5-sweep"
 
 # Counter for job submissions
 job_count=0
