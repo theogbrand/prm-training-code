@@ -17,6 +17,7 @@ echo "Gradient accumulation steps: ${gradient_accumulation_steps[@]}"
 # Create logs directory if it doesn't exist
 mkdir -p pbs_queue_logs
 
+# Usage: ./launch_sft_qwen_sweep_clean.sh
 # Loop through all combinations
 for mbs in "${micro_batch_sizes[@]}"; do
     for gas in "${gradient_accumulation_steps[@]}"; do
