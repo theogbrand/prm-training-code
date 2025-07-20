@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Arrays of parameter values to sweep
-micro_batch_sizes=(2 4)
-gradient_accumulation_steps=(2 4)
+micro_batch_sizes=(1)
+gradient_accumulation_steps=(2 4 8)
 
 # Base job name
 base_job_name="Qwen25-VL-32B-Instruct-mc00-lr2e-5-sweep"
