@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Arrays of parameter values to sweep
-micro_batch_sizes=(1 2 4)
-gradient_accumulation_steps=(1)
+micro_batch_sizes=(1 2)
+gradient_accumulation_steps=(1 2)
 
 # Base job name
-base_job_name="Qwen25-VL-32B-Instruct-mc00-lr2e-5-sweep"
+base_job_name="sweep-Q25VL-32B-Instruct-mc00-lr1e-5-sweep"
 
 # Counter for job submissions
 job_count=0

@@ -3,7 +3,7 @@
 #PBS -j oe
 #PBS -k oed
 
-#PBS -l select=1:ngpus=8:ncpus=96:mem=1600gb
+#PBS -l select=1:ngpus=8:ncpus=96:mem=1800gb
 #PBS -l walltime=336:00:00
 
 # PBS handles output redirection via -o option
@@ -48,7 +48,7 @@ epochs=2
 micro_batch_size=${MICRO_BATCH_SIZE:-1}
 gradient_accumulation_steps=${GRADIENT_ACCUMULATION_STEPS:-1}
 
-lr=2e-5
+lr=1e-5
 max_steps=-1 # -> not used now
 min_lr=0 # -> not used now
 weight_decay=1e-4 # -> not used now
