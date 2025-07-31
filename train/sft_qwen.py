@@ -242,32 +242,64 @@ if __name__ == "__main__":
     # Create a data collator to encode text and image pairs
     ################
     def collate_fn(examples):
-        # Get the texts and images, and apply the chat template
-        texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
+        # Get the texts and images, and apply the chat template with JIT cleaning
+        texts = [
+            processor.apply_chat_template(
+                [
+                    {
+                        "role": message["role"],
+                        "content": [
+                            {"type": "image", "image": item["image"]}
+                            for item in message["content"]
+                            if item["type"] == "image" and item.get("image") is not None
+                        ]
+                        + [
+                            {"type": "text", "text": item["text"]}
+                            for item in message["content"]
+                            if item["type"] == "text" and item.get("text") is not None
+                        ],
+                    }
+                    for message in example["messages"]
+                    if any(
+                        (item["type"] == "text" and item.get("text") is not None)
+                        or (item["type"] == "image" and item.get("image") is not None)
+                        for item in message["content"]
+                    )
+                ],
+                tokenize=False,
+            )
+            for example in examples
+        ]
         logging.info(f"CHECKING image token in texts: {texts[0]}")
         images = [[example["image"]] for example in examples]
+        logging.info(
+            f"DEBUG: Images structure: {[type(img[0]) if img else 'None' for img in images]}"
+        )
         # if isinstance(model, LlavaForConditionalGeneration):
         #     # LLava1.5 does not support multiple images
         #     images = [image[0] for image in images]
 
-        # Tokenize the texts and process the images
-        # You can now use data_args.max_pixels and data_args.min_pixels here if needed
-        # For example, when processing images with specific size constraints
-        batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
+        # Set processor constraints BEFORE processing
         processor.max_pixels = data_args.max_pixels
         processor.min_pixels = data_args.min_pixels
 
+        # Tokenize the texts and process the images
+        batch = processor(text=texts, images=images, return_tensors="pt", padding=True)
+
         # The labels are the input_ids, and we mask the padding tokens in the loss computation
         labels = batch["input_ids"].clone()
-        labels[labels == processor.tokenizer.pad_token_id] = -100  #
+        labels[labels == processor.tokenizer.pad_token_id] = -100
+
         # Ignore the image token index in the loss computation (model specific)
         if isinstance(processor, Qwen2VLProcessor):
             image_tokens = [151652,151653,151655]
         else: 
             image_tokens = [processor.tokenizer.convert_tokens_to_ids(processor.image_token)]
+
         for image_token_id in image_tokens:
             labels[labels == image_token_id] = -100
-            batch["labels"] = labels
+
+        batch["labels"] = labels
 
         return batch
 

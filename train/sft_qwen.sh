@@ -13,6 +13,9 @@ epochs=2
 micro_batch_size=2 # -> batch_size will be 64 if 8 gpus, per device batch size in single node; max this without OOM
 gradient_accumulation_steps=32 # gradually increase first, requires more GPU memory but less than increasing micro_batch_size
 lr=1e-5
+max_steps=-1 # -> not used now
+min_lr=0 # -> not used now
+weight_decay=1e-4 # -> not used now
 gpu_count=$(nvidia-smi -L | wc -l) # -> not used now
 push_to_hub=false # -> not used now
 
