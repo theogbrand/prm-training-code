@@ -3,12 +3,12 @@
 #PBS -j oe
 #PBS -k oed
 #PBS -N srun-QVL-7B-mc0.0-lr-1e6-scaling-bs2-grad32
-#PBS -o pbs_queue_logs/srun-QVL-7B-mc0.0-lr-1e6-scaling-bs2-grad32.out
+#PBS -o pbs_queue_logs/srun-QVL-7B-mc0.0-lr-1e6-scaling-bs2-grad32-streamlogs-datetime.out
 #PBS -l select=1:ngpus=8:ncpus=96:mem=1800gb
 #PBS -l walltime=336:00:00
 
 # Ensure immediate log flushing
-exec > >(stdbuf -oL tee -a "${PBS_O_WORKDIR}/pbs_queue_logs/Qwen2.5-VL-7B-Instruct-mc0.0-lr-1e6-scaling-bs2-grad32.out")
+exec > >(stdbuf -oL tee -a "${PBS_O_WORKDIR}/pbs_queue_logs/srun-QVL-7B-mc0.0-lr-1e6-scaling-bs2-grad32-$(date +%Y%m%d-%H%M%S).out")
 exec 2>&1
 
 cd $PBS_O_WORKDIR
@@ -46,7 +46,7 @@ gradient_accumulation_steps=32 # gradually increase first, requires more GPU mem
 lr=1e-6
 max_steps=-1 # only used for streaming, set later
 min_lr=1e-6 # -> not used now
-weight_decay=1e-4 # -> not used now
+weight_decay=1e-4
 gpu_count=$(nvidia-smi -L | wc -l) # -> not used now
 push_to_hub=false # -> not used now
 
@@ -68,6 +68,7 @@ accelerate launch --config_file=train/configs/deepspeed_zero2.yaml \
     --num_train_epochs ${epochs} \
     --learning_rate ${lr} \
     --lr_scheduler_type cosine \
+    --weight_decay ${weight_decay}
 
 exit_code=$?
 echo "Training completed with exit code: $exit_code at $(date)"
