@@ -6,8 +6,8 @@ export NCCL_DEBUG=INFO
 
 # Reference Running: qsub train/sft_qwen.pbs
 uid="$(date +%Y%m%d_%H%M%S)"
-# base_model="Qwen/Qwen2.5-VL-7B-Instruct"
-base_model="Qwen/Qwen2.5-VL-32B-Instruct"
+base_model="Qwen/Qwen2.5-VL-7B-Instruct"
+# base_model="Qwen/Qwen2.5-VL-32B-Instruct"
 dataset_name="ob11/visual-prm-training-data-v2-mc0.0-normal-token"
 epochs=2
 micro_batch_size=2 # -> batch_size will be 64 if 8 gpus, per device batch size in single node; max this without OOM
