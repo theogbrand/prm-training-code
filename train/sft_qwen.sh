@@ -13,9 +13,9 @@ epochs=2
 micro_batch_size=2 # -> batch_size will be 64 if 8 gpus, per device batch size in single node; max this without OOM
 gradient_accumulation_steps=32 # gradually increase first, requires more GPU memory but less than increasing micro_batch_size
 lr=1e-5
-max_steps=-1 # -> not used now
-min_lr=0 # -> not used now
-weight_decay=1e-4 # -> not used now
+max_steps=-1 # only used for streaming, set later
+min_lr=1e-6
+weight_decay=1e-4
 gpu_count=$(nvidia-smi -L | wc -l) # -> not used now
 push_to_hub=false # -> not used now
 
@@ -30,4 +30,5 @@ accelerate launch --config_file=train/configs/deepspeed_zero2.yaml \
     --torch_dtype bfloat16 \
     --gradient_checkpointing \
     --num_train_epochs ${epochs} \
-    --learning_rate ${lr} 
+    --learning_rate ${lr} \
+    --lr_scheduler_type cosine \
