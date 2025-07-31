@@ -64,98 +64,6 @@ For LLaVA-NeXT, use: (requires transformers>=4.45)
 For meta-llama/Llama-3.2-11B-Vision-Instruct, use: (requires transformers>=4.45.1)
     --model_name_or_path meta-llama/Llama-3.2-11B-Vision-Instruct
 """
-        
-# def process_example_local(example):
-#     """Load images from local files"""
-#     pil_images = []
-#     for s3_url in example['images']:
-#         cwd_abs_path = os.path.abspath(os.getcwd())
-#         local_path = s3_url.replace("s3://arf-share/arf-ob1-mm-reasoning/", cwd_abs_path + "/")
-#         try:
-#             if os.path.exists(local_path):
-#                 pil_image = Image.open(local_path)
-#                 pil_images.append(pil_image)  # Actually append the loaded image!
-#             else:
-#                 print(f"Warning: Local file not found: {local_path}")
-#         except Exception as e:
-#             print(f"Error loading {local_path}: {e}")
-    
-#     # Only update if we successfully loaded at least one image
-#     if pil_images:
-#         example['images'] = pil_images
-#     else:
-#         print("Warning: No images loaded for example")
-#         example['images'] = []  # Keep it as empty list for consistency
-    
-#     return example
-
-# def convert_sample_to_qwen_format(sample):
-#     """
-#     Convert sample from current schema to Qwen messages format
-    
-#     Args:
-#         sample: Dict with "messages" and "images" keys
-    
-#     Returns:
-#         Dict with "messages" key containing converted messages
-#     """
-#     messages = []
-#     images = [sample.get("image", [])]
-    
-#     for message in sample["messages"]:
-#         converted_message = {
-#             "role": message["role"],
-#             "content": []
-#         }
-        
-#         for content_item in message["content"]:
-#             if content_item["type"] == "text" and content_item["text"] is not None:
-#                 converted_message["content"].append({
-#                     "type": "text",
-#                     "text": content_item["text"]
-#                 })
-#             elif content_item["type"] == "image":
-#                 # Handle image by index
-#                 image_index = content_item.get("index", 0)
-#                 if images and image_index < len(images):
-#                     converted_message["content"].append({
-#                         "type": "image",
-#                         "image": images[image_index]
-#                     })
-#                 else:
-#                     # If no images provided, skip or handle as needed
-#                     print(f"Warning: No image found for index {image_index}")
-        
-#         # Only add messages that have content
-#         if converted_message["content"]:
-#             messages.append(converted_message)
-    
-#     return {"messages": messages}
-
-# def format_data_for_qwen(sample):
-    # return {"messages": [
-    #             {
-    #                 "role": "system",
-    #                 "content": [{"type": "text", "text": system_message}],
-    #             },
-    #             {
-    #                 "role": "user",
-    #                 "content": [
-    #                     {
-    #                         "type": "text",
-    #                         "text": prompt.format(product_name=sample["Product Name"], category=sample["Category"]),
-    #                     },{
-    #                         "type": "image",
-    #                         "image": sample["image"],
-    #                     }
-    #                 ],
-    #             },
-    #             {
-    #                 "role": "assistant",
-    #                 "content": [{"type": "text", "text": sample["description"]}],
-    #             },
-    #         ],
-    #     }
 
 if __name__ == "__main__":
     parser = TrlParser((ScriptArguments, SFTConfig, ModelConfig, DataArguments))
@@ -270,11 +178,11 @@ if __name__ == "__main__":
             )
             for example in examples
         ]
-        logging.info(f"CHECKING image token in texts: {texts[0]}")
+        # logging.info(f"CHECKING image token in texts: {texts[0]}")
         images = [[example["image"]] for example in examples]
-        logging.info(
-            f"DEBUG: Images structure: {[type(img[0]) if img else 'None' for img in images]}"
-        )
+        # logging.info(
+        #     f"DEBUG: Images structure: {[type(img[0]) if img else 'None' for img in images]}"
+        # )
         # if isinstance(model, LlavaForConditionalGeneration):
         #     # LLava1.5 does not support multiple images
         #     images = [image[0] for image in images]
@@ -319,41 +227,6 @@ if __name__ == "__main__":
     # training_dataset = load_from_disk("prm-training-data-qwen")
     # logging.info(f"training_dataset: {training_dataset}")
 
-    # we cannot do this for large datasets, so we do it at dataset level
-    # postprocessed_image_data = training_dataset["train"]
-    # logging.info(f"example postprocessed_image_data[345]['messages']: {postprocessed_image_data[345]['messages']}")
-
-    # postprocessed_image_data = [convert_sample_to_qwen_format(sample) for sample in training_dataset["train"]]
- 
-
-    # load dataset from JSONL file
-   # Load your JSONL file
-    # file_path = "/mnt/fast10/brandon/mmr_rollout_data/prm_training_data/train/AI2D_final_mc_rollouts_with_all_models_verification_merged_prm_training_data_final_trl_format_mc0.0.jsonl"
-
-    # # Load data into a list
-    # data = []
-    # with open(file_path, 'r') as f:
-    #     for line in f:
-    #         data.append(json.loads(line.strip()))
-
-    # print(f"Loaded {len(data)} samples") 
-    # print(data[345]["messages"])
-
-    # # need to use list comprehension to keep Pil.Image type, .map converts image to bytes
-    # processed_data = [process_example_local(sample) for sample in data] 
-    # postprocessed_image_data = [convert_sample_to_qwen_format(sample) for sample in processed_data] 
-    
-    # convert to HF Dataset for training
-    # trainining_dataset = Dataset.from_list(postprocessed_image_data)  # type: ignore
-
-    # assert isinstance(trainining_dataset[345]["images"][0], Image), "Image is not a PIL.Image.Image"
-
-    # # Create dataset dict (optional, for train/validation split)
-    # dataset_dict = DatasetDict({
-    #     "train": training_dataset
-    # })
-
-
     ################
     # Training
     ################
@@ -370,7 +243,6 @@ if __name__ == "__main__":
 
     trainer.train()
 
-    # Save and push to hub
     trainer.save_model(training_args.output_dir)
     if training_args.push_to_hub:
         trainer.push_to_hub(dataset_name=script_args.dataset_name)
