@@ -244,6 +244,7 @@ if __name__ == "__main__":
     def collate_fn(examples):
         # Get the texts and images, and apply the chat template
         texts = [processor.apply_chat_template(example["messages"], tokenize=False) for example in examples]
+        logging.info(f"CHECKING image token in texts: {texts[0]}")
         images = [[example["image"]] for example in examples]
         # if isinstance(model, LlavaForConditionalGeneration):
         #     # LLava1.5 does not support multiple images
