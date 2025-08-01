@@ -1,18 +1,34 @@
 from PIL.Image import logging
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoTokenizer, AutoProcessor
+from transformers import (
+    Qwen2_5_VLForConditionalGeneration,
+    AutoTokenizer,
+    AutoProcessor,
+    AutoConfig,
+)
 from qwen_vl_utils import process_vision_info
 from datasets import load_dataset
+import torch
 
-model_id = "./models/Qwen2.5-VL-7B-Instruct-updated-tokens"
+model_id = "./models/Qwen2.5-VL-7B-Instruct-updated-tokens-random-init-vals"
 # default: Load the model on the available device(s)
 model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
     model_id, torch_dtype="auto", device_map="cpu"
 )
-processor = AutoProcessor.from_pretrained(model_id)
+processor = AutoProcessor.from_pretrained(model_id, use_fast=True)
 
-# dataset = load_dataset("ob11/visual-prm-training-data-v2-mc0.01-custom-token-qwen-format")
+# Check if new token embeddings are initialized (not zeros/random)
+print(f"<-> embedding (151665): {model.language_model.embed_tokens.weight[151665]}")
+print(f"<+> embedding (151666): {model.language_model.embed_tokens.weight[151666]}")
 
-# single_dataset_example = dataset["train"][0]
+# Check if they're different from each other
+cos_sim = torch.nn.functional.cosine_similarity(
+    model.language_model.embed_tokens.weight[151665].unsqueeze(0),
+    model.language_model.embed_tokens.weight[151666].unsqueeze(0)
+)
+print(f"Cosine similarity between new tokens: {cos_sim}")
+
+exit()
+
 
 messages = [{
     "content": [
