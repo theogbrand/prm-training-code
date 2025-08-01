@@ -39,16 +39,15 @@ export PYTHONUNBUFFERED=1
 
 # Reference Running: qsub train/sft_qwen.pbs
 uid="$(date +%Y%m%d_%H%M%S)"
-base_model="Qwen/Qwen2.5-VL-7B-Instruct"
+base_model="./models/Qwen2.5-VL-7B-Instruct-updated-tokens"
 # base_model="Qwen/Qwen2.5-VL-32B-Instruct"
-dataset_name="ob11/visual-prm-training-data-v2-mc0.0-normal-token"
+dataset_name="ob11/visual-prm-training-data-v2-mc0.01-custom-token-qwen-format"
 epochs=2
 
 # Use environment variables with defaults
 micro_batch_size=${MICRO_BATCH_SIZE:-1}
 gradient_accumulation_steps=${GRADIENT_ACCUMULATION_STEPS:-1}
-
-lr=1e-5
+lr=${LEARNING_RATE:-1e-5}
 max_steps=-1 # -> not used now
 min_lr=0 # -> not used now
 weight_decay=1e-4 # -> not used now
@@ -61,6 +60,7 @@ echo "Python path: $(which python)"
 echo "CUDA devices: $CUDA_VISIBLE_DEVICES"
 echo "Micro batch size: ${micro_batch_size}"
 echo "Gradient accumulation steps: ${gradient_accumulation_steps}"
+echo "Learning rate: ${lr}"
 
 accelerate launch --config_file=train/configs/deepspeed_zero2.yaml \
     train/sft_qwen.py \

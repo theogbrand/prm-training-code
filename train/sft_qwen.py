@@ -136,7 +136,7 @@ if __name__ == "__main__":
     model = AutoModelForVision2Seq.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, **model_kwargs
     )
-
+    model.to("cuda")
     # Move model to GPU when using Flash Attention 2.0
     if model_args.attn_implementation == "flash_attention_2" and torch.cuda.is_available():
         model = model.to('cuda')
@@ -178,7 +178,7 @@ if __name__ == "__main__":
             )
             for example in examples
         ]
-        # logging.info(f"CHECKING image token in texts: {texts[0]}")
+        logging.info(f"CHECKING Prompt with image token in texts: {texts[0]}")
         images = [[example["image"]] for example in examples]
         # logging.info(
         #     f"DEBUG: Images structure: {[type(img[0]) if img else 'None' for img in images]}"
@@ -196,10 +196,31 @@ if __name__ == "__main__":
 
         # The labels are the input_ids, and we mask the padding tokens in the loss computation
         labels = batch["input_ids"].clone()
-        
-       # Ignore ALL the prompt token indexes in the loss computation, as we only care about the PRM <+> and <-> token losses
 
+        # Ignore ALL the prompt token indexes in the loss computation, as we only care about the PRM <+> and <-> token losses
+        # First, mask everything as -100
+        labels[:, :] = -100
 
+        # Now unmask only the assistant tokens (<+> and <->)
+        good_token_id = processor.tokenizer.convert_tokens_to_ids(
+            "<+>"
+        )
+        bad_token_id = processor.tokenizer.convert_tokens_to_ids(
+            "<->"
+        )
+
+        # verify tokens are single token ids
+        if not good_token_id == 151666 or not bad_token_id == 151665:
+            raise ValueError(f"PRM tokens must be single tokens. Got: {good_token_id}, {bad_token_id}")
+
+        if processor.tokenizer.pad_token_id in [good_token_id, bad_token_id]:
+            raise ValueError("Pad token ID conflicts with PRM token IDs")
+
+        # Find positions of these tokens and unmask them
+        assistant_token_mask = (batch["input_ids"] == good_token_id) | (
+            batch["input_ids"] == bad_token_id
+        )
+        labels[assistant_token_mask] = batch["input_ids"][assistant_token_mask]
 
         # Uncomment this section for normal SFT training
         # labels[labels == processor.tokenizer.pad_token_id] = -100

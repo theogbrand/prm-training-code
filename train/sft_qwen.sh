@@ -6,9 +6,9 @@ export NCCL_DEBUG=INFO
 
 # Reference Running: qsub train/sft_qwen.pbs
 uid="$(date +%Y%m%d_%H%M%S)"
-base_model="Qwen/Qwen2.5-VL-7B-Instruct"
+base_model="./models/Qwen2.5-VL-7B-Instruct-updated-tokens"
 # base_model="Qwen/Qwen2.5-VL-32B-Instruct"
-dataset_name="ob11/visual-prm-training-data-v2-mc0.0-normal-token"
+dataset_name="ob11/visual-prm-training-data-v2-mc0.01-custom-token-qwen-format"
 epochs=2
 micro_batch_size=2 # -> batch_size will be 64 if 8 gpus, per device batch size in single node; max this without OOM
 gradient_accumulation_steps=32 # gradually increase first, requires more GPU memory but less than increasing micro_batch_size
