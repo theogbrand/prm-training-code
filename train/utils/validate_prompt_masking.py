@@ -25,13 +25,27 @@ messages = [{
   },
   {
     'role': 'user',
-    'content': [{'type': 'text',
-      'text': '<image>\n### Question:\nWhat year was this picture taken? Answer the question using a single word or phrase.\n\n### Solution Process:\n[Visual Elements]\n<step_1>\nObserving several brown stuffed teddy bears, some with white paws, hanging close together, likely as display items.\n</step_1>'}]
+    'content': [
+        {'type': 'image',
+      'image': '<image>'},
+        {'type': 'text',
+      'text': '### Question:\nWhat year was this picture taken? Answer the question using a single word or phrase.\n\n### Solution Process:\n[Visual Elements]\n<step_1>\nObserving several brown stuffed teddy bears, some with white paws, hanging close together, likely as display items.\n</step_1>'}]
   },
   {
     'role': 'assistant',
     'content': [{'type': 'text',
       'text': '<+>'}]
+  },
+  {
+    'role': 'user',
+    'content': [
+        {'type': 'text',
+      'text': '<step_2>\nThe second row contains three images: each has a large square, with a small black circle in the center. The black circle appears to decrease in size from left to right.\n</step_2>'}]
+  },
+  {
+    'role': 'assistant',
+    'content': [{'type': 'text',
+      'text': '<->'}]
   }
 ]
 
