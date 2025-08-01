@@ -3,7 +3,7 @@
 # Arrays of parameter values to sweep
 micro_batch_sizes=(2)
 gradient_accumulation_steps=(32)
-learning_rates=(1e-5 5e-6 1e-6 5e-7)
+learning_rates=(1e-5 1e-6 1e-7)
 
 # Base job name
 base_job_name="sweep-QVL-7B-mc00"
