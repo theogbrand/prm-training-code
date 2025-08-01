@@ -73,7 +73,12 @@ accelerate launch --config_file=train/configs/deepspeed_zero2.yaml \
     --torch_dtype bfloat16 \
     --gradient_checkpointing \
     --num_train_epochs ${epochs} \
-    --learning_rate ${lr}
+    --learning_rate ${lr} \
+    --lr_scheduler_type cosine \
+    --warmup_ratio 0.05 \
+    --weight_decay ${weight_decay} \
+    --adam_beta1=0.9 \
+    --adam_beta2=0.95
 
 exit_code=$?
 echo "Training completed with exit code: $exit_code at $(date)"

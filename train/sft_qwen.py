@@ -178,7 +178,7 @@ if __name__ == "__main__":
             )
             for example in examples
         ]
-        logging.info(f"CHECKING Prompt with image token in texts: {texts[0]}")
+        # logging.info(f"CHECKING Prompt with image token in texts: {texts[0]}")
         images = [[example["image"]] for example in examples]
         # logging.info(
         #     f"DEBUG: Images structure: {[type(img[0]) if img else 'None' for img in images]}"
