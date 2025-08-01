@@ -14,3 +14,4 @@ prm-training-data-qwen/*
 .env.pbs
 local_saved_datasets/*
 pbs_queue_logs/*
+models/*
